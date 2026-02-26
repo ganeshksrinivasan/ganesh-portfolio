@@ -4,171 +4,131 @@ IBKR CSV Parser — reads your IBKR activity statement and updates src/data.js
 Run automatically by GitHub Actions when you upload a new CSV to ibkr-uploads/
 """
 
-import csv
-import re
-import os
-import sys
+import csv, re, os, sys
 from pathlib import Path
 
+
 def parse_ibkr_csv(filepath):
-    """Extract all relevant numbers from the IBKR activity statement CSV."""
-    data = {}
-    
+    data    = {}
+    monthly = [0.0] * 12
+
     with open(filepath, 'r', encoding='utf-8-sig') as f:
-        reader = csv.reader(f)
-        rows = list(reader)
-    
+        rows = list(csv.reader(f))
+
     for row in rows:
         if len(row) < 3:
             continue
-        
-        section = row[0].strip()
-        row_type = row[1].strip() if len(row) > 1 else ''
-        
-        # ── Period (to extract year) ──────────────────────────
-        if section == 'Statement' and row_type == 'Data':
-            if len(row) >= 4 and row[2].strip() == 'Period':
-                period = row[3].strip()
-                # Extract the end date year e.g. "January 1, 2026 - February 25, 2026"
-                years = re.findall(r'\d{4}', period)
-                if years:
-                    data['year'] = years[-1]  # use the end year
-                    data['period'] = period
-        
-        # ── Net Asset Value (ending portfolio value + TWRR) ──
-        if section == 'Net Asset Value' and row_type == 'Data':
-            if len(row) >= 3:
-                field = row[2].strip()
-                if field == 'Total' and len(row) >= 5:
-                    # Current Total is col 5 (index 4)
-                    try:
-                        data['endValue'] = float(row[4].strip().replace(',', ''))
-                    except:
-                        pass
-                # TWRR is on its own data row with a % value
-                if '%' in field:
-                    try:
-                        twrr_str = field.replace('%', '').strip()
-                        data['twrr'] = float(twrr_str)
-                    except:
-                        pass
-        
-        # ── Change in NAV ─────────────────────────────────────
-        if section == 'Change in NAV' and row_type == 'Data':
-            if len(row) >= 4:
-                field = row[2].strip()
-                try:
-                    value = float(row[3].strip().replace(',', ''))
-                except:
-                    continue
-                
-                if field == 'Mark-to-Market':
-                    data['mtm'] = value
-                elif field == 'Deposits & Withdrawals':
-                    data['deposits'] = value
-                elif field == 'Dividends':
-                    data['dividends_gross'] = value
-                elif field == 'Withholding Tax':
-                    data['withholding_tax'] = value
-                elif field == 'Interest':
-                    data['interest'] = value
-                elif field == 'Starting Value':
-                    data['startValue'] = value
-                elif field == 'Ending Value':
-                    data['endValue_nav'] = value  # double-check
+        sec  = row[0].strip()
+        kind = row[1].strip()
 
-    # Net dividends = gross dividends + withholding tax (tax is negative)
-    gross = data.get('dividends_gross', 0)
-    wht   = data.get('withholding_tax', 0)
-    data['divNet'] = round(gross + wht, 2)
-    
-    # Use the NAV ending value as the authoritative end value
-    if 'endValue_nav' in data:
-        data['endValue'] = data['endValue_nav']
-    
+        if sec == 'Statement' and kind == 'Data' and len(row) >= 4 and row[2].strip() == 'Period':
+            years = re.findall(r'\d{4}', row[3])
+            if years:
+                data['year']   = years[-1]
+                data['period'] = row[3].strip()
+
+        if sec == 'Net Asset Value' and kind == 'Data' and len(row) >= 3:
+            f = row[2].strip()
+            if f == 'Total' and len(row) >= 5:
+                try: data['endValue'] = float(row[4].replace(',',''))
+                except: pass
+            if '%' in f:
+                try: data['twrr'] = float(f.replace('%','').strip())
+                except: pass
+
+        if sec == 'Change in NAV' and kind == 'Data' and len(row) >= 4:
+            f = row[2].strip()
+            try: v = float(row[3].replace(',',''))
+            except: continue
+            if   f == 'Mark-to-Market':          data['mtm']             = v
+            elif f == 'Deposits & Withdrawals':  data['deposits']        = v
+            elif f == 'Dividends':               data['dividends_gross'] = v
+            elif f == 'Withholding Tax':         data['withholding_tax'] = v
+            elif f == 'Interest':                data['interest']        = v
+            elif f == 'Ending Value':            data['endValue']        = v
+
+        if sec == 'Deposits & Withdrawals' and kind == 'Data' and len(row) >= 6:
+            try:
+                mi = int(row[3].strip().split('-')[1]) - 1
+                monthly[mi] += float(row[5].replace(',',''))
+            except: pass
+
+    data['monthly'] = [round(v) for v in monthly]
+    data['divNet']  = round(data.get('dividends_gross',0) + data.get('withholding_tax',0), 2)
     return data
 
 
-def update_data_js(parsed, data_js_path):
-    """Update src/data.js with the new year-to-date data."""
-    
-    year     = parsed.get('year', 'unknown')
+def clean_year_from_section(text, year):
+    """Remove all lines containing this year (commented or not)."""
+    # Remove JS object entries: { year: "2026", ... },
+    text = re.sub(rf'[ \t]*//[^\n]*year:\s*"{year}"[^\n]*\n', '', text)
+    text = re.sub(rf'[ \t]*\{{[^}}\n]*year:\s*"{year}"[^}}\n]*\}},?[ \t]*\n', '', text)
+    # Remove monthly array entries: 2026: [...],
+    text = re.sub(rf'[ \t]*//[^\n]*{year}:\s*\[[^\n]*\n', '', text)
+    text = re.sub(rf'[ \t]*{year}:\s*\[[^\n]*\n', '', text)
+    return text
+
+
+def update_data_js(parsed, path):
+    year     = parsed['year']
     deposits = round(parsed.get('deposits', 0))
     end_val  = round(parsed.get('endValue', 0))
     mtm      = round(parsed.get('mtm', 0))
     twrr     = round(parsed.get('twrr', 0), 2)
-    div_net  = round(parsed.get('divNet', 0))
+    div_net  = parsed.get('divNet', 0)
     interest = round(parsed.get('interest', 0), 2)
+    monthly  = parsed.get('monthly', [0]*12)
 
-    with open(data_js_path, 'r') as f:
-        content = f.read()
+    content = path.read_text()
 
-    # Find the last cumDeposits value to calculate new cumulative
-    cum_dep_matches = re.findall(r'cumDeposits:\s*(\d+)', content)
-    last_cum = int(cum_dep_matches[-1]) if cum_dep_matches else 0
-    
-    # Find if this year already exists in the file
-    year_pattern = rf'{{[^}}]*year:\s*"{year}"[^}}]*}}'
-    
-    new_entry = (
-        f'  {{ year: "{year}", deposits: {deposits}, '
-        f'cumDeposits: {last_cum + deposits}, '
-        f'endValue: {end_val}, '
-        f'mtm: {mtm}, '
-        f'twrr: {twrr}, '
-        f'divNet: {div_net}, '
-        f'interest: {interest} }},\n'
-    )
+    # Find cumDeposits from most recent year that isn't this year
+    cum_matches = re.findall(
+        rf'year:\s*"(?!{year})[^"]+",\s*deposits:\s*\d+,\s*cumDeposits:\s*(\d+)', content)
+    last_cum = int(cum_matches[-1]) if cum_matches else 0
 
-    if re.search(rf'year:\s*"{year}"', content):
-        # Year exists — update it
-        content = re.sub(year_pattern, new_entry.strip().rstrip(','), content)
-        print(f"✅ Updated existing entry for {year}")
-    else:
-        # New year — insert before the comment line
-        insert_marker = '  // ── ADD NEW YEARS BELOW THIS LINE'
-        if insert_marker in content:
-            content = content.replace(insert_marker, new_entry + insert_marker)
-        else:
-            # Fallback: insert before closing ];
-            content = content.replace('];\n', f'\n{new_entry}];\n')
-        print(f"✅ Added new entry for {year}")
+    # Split file at YEARLY_DATA and MONTHLY_DEPOSITS section boundaries
+    yearly_split  = 'export const YEARLY_DATA = ['
+    monthly_split = 'export const MONTHLY_DEPOSITS = {'
 
-    with open(data_js_path, 'w') as f:
-        f.write(content)
-    
-    print(f"\n📊 Summary for {year} ({parsed.get('period', '')}):")
-    print(f"   Portfolio Value : ${end_val:,}")
-    print(f"   Deposits YTD    : ${deposits:,}")
-    print(f"   Mark-to-Market  : ${mtm:,}")
-    print(f"   TWRR            : {twrr}%")
-    print(f"   Net Dividends   : ${div_net:,}")
-    print(f"   Interest        : ${interest:,}")
+    before_yearly  = content[:content.index(yearly_split)]
+    yearly_and_rest = content[content.index(yearly_split):]
+    yearly_section = yearly_and_rest[:yearly_and_rest.index(monthly_split)]
+    monthly_and_rest = yearly_and_rest[yearly_and_rest.index(monthly_split):]
+
+    # Clean this year from both sections
+    yearly_section   = clean_year_from_section(yearly_section, year)
+    monthly_and_rest = clean_year_from_section(monthly_and_rest, year)
+
+    # Insert new yearly entry before its marker
+    new_yearly = (f'  {{ year: "{year}", deposits: {deposits}, cumDeposits: {last_cum + deposits}, '
+                  f'endValue: {end_val}, mtm: {mtm}, twrr: {twrr}, divNet: {div_net}, interest: {interest} }},\n')
+    yearly_marker = '  // ── ADD NEW YEARS BELOW THIS LINE'
+    yearly_section = yearly_section.replace(yearly_marker, new_yearly + yearly_marker)
+
+    # Insert new monthly entry before its marker
+    new_monthly    = f'  {year}: [{", ".join(str(v) for v in monthly)}],\n'
+    monthly_and_rest = monthly_and_rest.replace(yearly_marker, new_monthly + yearly_marker, 1)
+
+    path.write_text(before_yearly + yearly_section + monthly_and_rest)
+
+    print(f"✅ YEARLY_DATA updated for {year}")
+    print(f"✅ MONTHLY_DEPOSITS updated for {year}")
+    print(f"\n📊 {year} ({parsed.get('period','')}):")
+    print(f"   Portfolio: ${end_val:,}  |  Deposits: ${deposits:,}  |  TWRR: {twrr}%")
+    print(f"   Monthly  : {monthly}")
 
 
 def main():
-    # Find the CSV file in ibkr-uploads/
-    uploads_dir = Path('ibkr-uploads')
-    csv_files = list(uploads_dir.glob('*.csv'))
-    
+    csv_files = list(Path('ibkr-uploads').glob('*.csv'))
     if not csv_files:
-        print("❌ No CSV file found in ibkr-uploads/ folder")
-        sys.exit(1)
-    
-    # Use the most recently modified file
+        print("❌ No CSV in ibkr-uploads/"); sys.exit(1)
     csv_file = sorted(csv_files, key=os.path.getmtime)[-1]
-    print(f"📂 Reading: {csv_file}")
-    
+    print(f"📂 {csv_file}")
     parsed = parse_ibkr_csv(csv_file)
-    
     if 'year' not in parsed:
-        print("❌ Could not extract year from CSV")
-        sys.exit(1)
-    
-    data_js = Path('src/data.js')
-    update_data_js(parsed, data_js)
-    print("\n🚀 data.js updated! Vercel will redeploy automatically.")
-
+        print("❌ Could not find year"); sys.exit(1)
+    update_data_js(parsed, Path('src/data.js'))
+    print("\n🚀 Done! Vercel will redeploy automatically.")
 
 if __name__ == '__main__':
     main()

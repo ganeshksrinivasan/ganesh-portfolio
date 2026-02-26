@@ -4,15 +4,6 @@
 // ============================================================
 
 export const YEARLY_DATA = [
-  // year        : the year
-  // deposits    : total fresh capital added that year (SGD)
-  // cumDeposits : running total of all deposits ever made
-  // endValue    : portfolio value at end of year (from IBKR NAV)
-  // mtm         : mark-to-market gain/loss (price changes only, no cash flows)
-  // twrr        : time-weighted return % as reported by IBKR
-  // divNet      : dividends received net of withholding tax
-  // interest    : interest income earned
-
   { year: "2019", deposits: 10000,  cumDeposits: 10000,   endValue: 9945,   mtm: 0,       twrr: -0.55,  divNet: 0,    interest: 0    },
   { year: "2020", deposits: 65000,  cumDeposits: 75000,   endValue: 97642,  mtm: 22424,   twrr: 32.19,  divNet: 477,  interest: 7    },
   { year: "2021", deposits: 45000,  cumDeposits: 120000,  endValue: 161058, mtm: 17461,   twrr: 16.78,  divNet: 1207, interest: 0    },
@@ -21,8 +12,8 @@ export const YEARLY_DATA = [
   { year: "2024", deposits: 34908,  cumDeposits: 212608,  endValue: 327915, mtm: 53082,   twrr: 22.16,  divNet: 1928, interest: 2357 },
   { year: "2025", deposits: 50000,  cumDeposits: 262608,  endValue: 420242, mtm: 38746,   twrr: 11.27,  divNet: 2677, interest: 477  },
 
+  { year: "2026", deposits: 2100, cumDeposits: 264708, endValue: 412543, mtm: -9797, twrr: -2.34, divNet: 728.11, interest: 7.74 },
   // ── ADD NEW YEARS BELOW THIS LINE ──────────────────────────
-  { year: "2026", deposits: 2100, cumDeposits: 266808, endValue: 412543, mtm: -9797, twrr: -2.34, divNet: 728, interest: 7.74 },
 ];
 
 export const MONTHLY_DEPOSITS = {
@@ -36,8 +27,8 @@ export const MONTHLY_DEPOSITS = {
   2024: [8000, 2358,  3000,  18000, 2550, -10000,  8000, 3000, 0,    0,    0,    0    ],
   2025: [6000, 1000,  4000,  12000, 1000,  -3000,  0,    5000, 1000, 3000, 0,    20000],
 
+  2026: [0, 2100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   // ── ADD NEW YEARS BELOW THIS LINE ──────────────────────────
-  2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 };
 
 // Pre-IBKR income (from your Summary sheet)
