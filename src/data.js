@@ -22,7 +22,7 @@ export const YEARLY_DATA = [
   { year: "2025", deposits: 50000,  cumDeposits: 262608,  endValue: 420242, mtm: 38746,   twrr: 11.27,  divNet: 2677, interest: 477  },
 
   // ── ADD NEW YEARS BELOW THIS LINE ──────────────────────────
-  // { year: "2026", deposits: 0, cumDeposits: 262608, endValue: 0, mtm: 0, twrr: 0, divNet: 0, interest: 0 },
+  // { year: "2026", deposits: 2100, cumDeposits: 264708, endValue: 412543, mtm: -9797, twrr: -2.34, divNet: 728, interest: 7.74 },
 ];
 
 export const MONTHLY_DEPOSITS = {
