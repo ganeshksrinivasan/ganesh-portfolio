@@ -187,7 +187,8 @@ export default function App() {
 
   // SPY annual total returns 2019–2026 (price + dividends)
   const SPY_ANNUAL = {"2019":31.5,"2020":18.4,"2021":28.7,"2022":-18.2,"2023":26.3,"2024":25.0,"2025":24.9,"2026":-3.8};
-  const spyAvgTWRR = 15.2; // geometric mean
+  const spyAvgTWRR = 15.2; // geometric mean 2019-2026
+  const stiAvgTWRR = 4.8;  // STI geometric mean 2019-2026
 
   const tabBtn = (t) => (
     <button key={t} onClick={()=>setTab(t)} style={{ padding:"10px 16px", background:tab===t?"#fff":"transparent", color:tab===t?NAVY:"rgba(255,255,255,0.65)", border:"none", cursor:"pointer", fontSize:12, fontWeight:600, borderRadius:"8px 8px 0 0", transition:"all 0.15s", whiteSpace:"nowrap" }}>{t}</button>
@@ -217,6 +218,20 @@ export default function App() {
             <KPICard label="Total Gain"      color={GREEN} value={fmt(totalGain)}     sub={`+${gainPct}% on capital`} />
             <KPICard label="Best Year"       color={GOLD}  value={pct(bestYear.twrr)} sub={`${bestYear.year} TWRR`} />
             <KPICard label="Worst Year"      color={RED}   value={pct(worstYear.twrr)} sub={`${worstYear.year} TWRR`} />
+          <div style={{ flex:1, minWidth:150, background:"#fff", borderRadius:12, padding:"18px 22px", borderTop:`3px solid ${NAVY}`, boxShadow:"0 2px 12px rgba(31,56,100,0.07)" }}>
+            <div style={{ fontSize:10, color:GREY, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Avg Annual Return</div>
+            <div style={{ fontSize:22, fontWeight:800, color:NAVY, fontFamily:"monospace", marginBottom:6 }}>+{avgTWRR}%</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+              <div style={{ fontSize:11, display:"flex", justifyContent:"space-between", gap:12 }}>
+                <span style={{ color:GREY }}>SPY (2019–2026)</span>
+                <span style={{ fontWeight:700, color:GREEN }}>+{spyAvgTWRR}%</span>
+              </div>
+              <div style={{ fontSize:11, display:"flex", justifyContent:"space-between", gap:12 }}>
+                <span style={{ color:GREY }}>STI (2019–2026)</span>
+                <span style={{ fontWeight:700, color:GOLD }}>+{stiAvgTWRR}%</span>
+              </div>
+            </div>
+          </div>
           </div>
         )}
 
