@@ -22,7 +22,7 @@ export const YEARLY_DATA = [
   { year: "2025", deposits: 50000,  cumDeposits: 262608,  endValue: 420242, mtm: 38746,   twrr: 11.27,  divNet: 2677, interest: 477  },
 
   // ── ADD NEW YEARS BELOW THIS LINE ──────────────────────────
-  // { year: "2026", deposits: 2100, cumDeposits: 266808, endValue: 412543, mtm: -9797, twrr: -2.34, divNet: 728, interest: 7.74 },
+  { year: "2026", deposits: 2100, cumDeposits: 266808, endValue: 412543, mtm: -9797, twrr: -2.34, divNet: 728, interest: 7.74 },
 ];
 
 export const MONTHLY_DEPOSITS = {
@@ -37,7 +37,7 @@ export const MONTHLY_DEPOSITS = {
   2025: [6000, 1000,  4000,  12000, 1000,  -3000,  0,    5000, 1000, 3000, 0,    20000],
 
   // ── ADD NEW YEARS BELOW THIS LINE ──────────────────────────
-  // 2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 };
 
 // Pre-IBKR income (from your Summary sheet)
