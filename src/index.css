@@ -1,0 +1,21 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: #f8f9fb;
+  color: #111;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --navy: #1F3864;
+  --gold: #C9A227;
+  --green: #2E7D32;
+  --red: #C62828;
+  --grey: #546E7A;
+  --light: #F5F7FA;
+  --border: #E0E6EE;
+  --mono: 'DM Mono', monospace;
+}
+
+button { font-family: 'Outfit', sans-serif; }
